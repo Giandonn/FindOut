@@ -1,54 +1,76 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
+using System.Linq;
+using WebApplication2.Data;
 using WebApplication2.Dto;
-using WebApplication2.Model;
+using WebApplication2.Models;
 
-namespace WebApplication2.Controllers {
-	[ApiController]
-	[Route("/api/v1.0/categoria")]
-	public class CategoriaController : ControllerBase {
-		[HttpPost]
-		public ActionResult<Categoria> Post([FromServices] DataContext dataContext, [FromBody] CategoriaRequest categoriaRequest) {
-			if (ModelState.IsValid) {
-				var categoria = categoriaRequest.toModel();
-				dataContext.Categorias.Add(categoria);
-				dataContext.SaveChanges();
-				return categoria;
-			}
-			return BadRequest(ModelState);
-		}
+namespace WebApplication2.Controllers
+{
+    [ApiController]
+    [Route("/api/v1.0/categoria")]
+    public class CategoriaController : ControllerBase
+    {
+        private readonly DataContext _context;
 
-		[HttpGet]
-		public ActionResult<List<Categoria>> Get([FromServices] DataContext dataContext)
-			=> dataContext.Categorias.ToList();
+        public CategoriaController(DataContext context)
+        {
+            _context = context;
+        }
 
-		[HttpPut]
-		public ActionResult<Categoria> Put([FromServices] DataContext dataContext, [FromBody] Categoria categoria) {
-			var categoriaENulo = dataContext.Categorias.FirstOrDefault(categoria) == null;
-			if (categoriaENulo)
-				ModelState.AddModelError("CategoriaId", "Id da categoria não encontrado!");
+        [HttpPost]
+        public ActionResult<Categoria> Post([FromBody] CategoriaDto categoriaDto)
+        {
+            if (ModelState.IsValid)
+            {
+                var categoria = categoriaDto.ToModel();
+                _context.Categorias.Add(categoria);
+                _context.SaveChanges();
+                return categoria;
+            }
+            return BadRequest(ModelState);
+        }
 
-			if (ModelState.IsValid) {
-				dataContext.Categorias.Update(categoria);
-				dataContext.SaveChanges();
-				return categoria;
-			}
-			return BadRequest(ModelState);
-		}
+        [HttpGet]
+        public ActionResult<List<Categoria>> Get()
+        {
+            var categorias = _context.Categorias.ToList();
+            return Ok(categorias);
+        }
 
-		[HttpDelete("id:int")]
-		public ActionResult Delete([FromServices] DataContext dataContext, int id) {
-			var categoria = dataContext.Categorias.Find(id);
-			if (categoria == null)
-				ModelState.AddModelError("CategoriaId", "Id da categoria não encontrado!");
+        [HttpPut("{id}")]
+        public ActionResult<Categoria> Put(int id, [FromBody] CategoriaDto categoriaDto)
+        {
+            var categoria = _context.Categorias.Find(id);
+            if (categoria == null)
+            {
+                ModelState.AddModelError("CategoriaId", "Id da categoria não encontrado!");
+                return BadRequest(ModelState);
+            }
 
-			if (ModelState.IsValid) {
-				dataContext.Categorias.Remove(categoria);
-				dataContext.SaveChanges();
-				return Ok();
-			}
-			return BadRequest(ModelState);
+            if (ModelState.IsValid)
+            {
+                categoria.Nome = categoriaDto.Nome;
+                _context.Categorias.Update(categoria);
+                _context.SaveChanges();
+                return categoria;
+            }
+            return BadRequest(ModelState);
+        }
 
-		}
+        [HttpDelete("{id}")]
+        public ActionResult Delete(int id)
+        {
+            var categoria = _context.Categorias.Find(id);
+            if (categoria == null)
+            {
+                ModelState.AddModelError("CategoriaId", "Id da categoria não encontrado!");
+                return BadRequest(ModelState);
+            }
 
-	}
+            _context.Categorias.Remove(categoria);
+            _context.SaveChanges();
+            return Ok();
+        }
+    }
 }
